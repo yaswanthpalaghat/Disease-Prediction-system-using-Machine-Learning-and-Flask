@@ -1,0 +1,144 @@
+{% include 'includes/default.html' %}
+<head>
+        <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAVZIr_BmEFJTyl7MzSpBS_XpLrBgZEBZg&libraries=places&sensor=false"></script>
+        <script src="js/script.js"></script>
+        <!-- <script>
+            var map;
+            function initMap() {
+              map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: -34.397, lng: 150.644},
+                zoom: 8
+              });
+            }
+          </script> -->
+          <!-- <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAVZIr_BmEFJTyl7MzSpBS_XpLrBgZEBZg&callback=initalize" -->
+          async defer></script>
+<script type="text/javascript">
+    var geocoder;
+var map;
+var markers = Array();
+var infos = Array();
+function initialize() {
+    // prepare Geocoder
+    geocoder = new google.maps.Geocoder();
+    // set initial position (Byculla)
+    var myLatlng = new google.maps.LatLng(14.4426,78.9865);
+    var myOptions = { // default map options
+        zoom: 15,
+        center: myLatlng,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+    map = new google.maps.Map(document.getElementById('gmap_canvas'), myOptions);
+}
+// clear overlays function
+function clearOverlays() {
+    if (markers) {
+        for (i in markers) {
+            markers[i].setMap(null);
+        }
+        markers = [];
+        infos = [];
+    }
+}
+// clear infos function
+function clearInfos() {
+    if (infos) {
+        for (i in infos) {
+            if (infos[i].getMap()) {
+                infos[i].close();
+            }
+        }
+    }
+}
+// find address function
+function findAddress() {
+    var address = '{{location}}';
+    // script uses our 'geocoder' in order to find location by address name
+    geocoder.geocode( { 'address': address}, function(results, status) {
+        if (status == google.maps.GeocoderStatus.OK) { // and, if everything is ok
+            // we will center map
+            var addrLocation = results[0].geometry.location;
+            map.setCenter(addrLocation);
+            // store current coordinates into hidden variables
+            document.getElementById('lat').value = results[0].geometry.location.lat();
+            document.getElementById('lng').value = results[0].geometry.location.lng();
+            // and then - add new custom marker
+            var addrMarker = new google.maps.Marker({
+                position: addrLocation,
+                map: map,
+                title: results[0].formatted_address,
+                icon: 'marker.png' 
+            });
+        } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+        }
+        findPlaces();
+    });
+}
+// find custom places function
+function findPlaces() {
+    // prepare variables (filter)
+    var lat = document.getElementById('lat').value;
+    var lng = document.getElementById('lng').value;
+    var cur_location = new google.maps.LatLng(lat, lng);
+    // prepare request to Places
+    var request = {
+        location: cur_location,
+        radius: 2000,
+        types: ['hospital','doctor']
+    };
+
+    // send request
+    service = new google.maps.places.PlacesService(map);
+    service.search(request, createMarkers);
+}
+// create markers (from 'findPlaces' function)
+function createMarkers(results, status) {
+    if (status == google.maps.places.PlacesServiceStatus.OK) {
+        // if we have found something - clear map (overlays)
+        clearOverlays();
+        // and create new markers by search result
+        for (var i = 0; i < results.length; i++) {
+            createMarker(results[i]);
+        }
+    } else if (status == google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+        alert('Sorry, nothing is found');
+    }
+}
+// creare single marker function
+function createMarker(obj) {
+    // prepare new Marker object
+    var mark = new google.maps.Marker({
+        position: obj.geometry.location,
+        map: map,
+        title: obj.name
+    });
+    markers.push(mark);
+    // prepare info window
+    var infowindow = new google.maps.InfoWindow({
+        content: '<img src="' + obj.icon + '" /><font style="color:#000;">' + obj.name +
+        '<br />Rating: ' + obj.rating + '<br />Vicinity: ' + obj.vicinity + '</font>'
+    });
+    // add event handler to current marker
+    google.maps.event.addListener(mark, 'click', function() {
+        clearInfos();
+        infowindow.open(map,mark);
+    });
+    infos.push(infowindow);
+}
+// initialization
+google.maps.event.addDomListener(window, 'load', initialize);
+document.getElementById("doctortab").click();
+
+    </script>
+        
+</head>
+<body  onload="findAddress()">
+        <div id="gmap_canvas" style="position: absolute; top:200px;right:20px ;height:400px;width:800px">
+        </div>
+        <input type="hidden" id="lat" name="lat" value="18.9682846" />
+        <input type="hidden" id="lng" name="lng" value="72.8311396" />
+        <!-- <input type="hidden" value="{{location}}" id="location" name='location'> -->
+        
+</body>
